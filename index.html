@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AstroMath AI Solver - Dual Input</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Use Inter font -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* Dark background for futuristic look */
+            color: #c9d1d9;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            max-width: 95%;
+            width: 800px; /* Slightly wider for dual input */
+            padding: 1.5rem;
+            background-color: #161b22;
+            border-radius: 1rem;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.2); /* Cyan glow effect */
+            border: 1px solid #30363d;
+        }
+        .ai-title {
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
+        }
+        /* Custom file input styling */
+        .custom-file-input::-webkit-file-upload-button {
+            visibility: hidden;
+        }
+        .custom-file-input::before {
+            content: 'Select Image';
+            display: inline-block;
+            background: linear-gradient(180deg, #2f363d, #1f2327);
+            border: 1px solid #30363d;
+            border-radius: 0.5rem;
+            padding: 8px 16px;
+            outline: none;
+            white-space: nowrap;
+            cursor: pointer;
+            font-weight: 600;
+            color: #58a6ff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .custom-file-input:hover::before {
+            border-color: #58a6ff;
+        }
+        .custom-file-input:active::before {
+            background: #1f2327;
+        }
+        /* Image Preview Style */
+        .image-preview {
+            width: 100%;
+            height: 120px;
+            background-color: #0d1117;
+            border: 1px dashed #58a6ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        .image-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        /* Style for the Step-by-Step solution */
+        .result-box {
+            background-color: #0d1117;
+            border: 1px solid #58a6ff;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            overflow-x: auto; /* Handle wide math expressions */
+        }
+        .result-box h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #00f0ff;
+            margin-bottom: 0.5rem;
+        }
+        .result-box .MathJax {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            padding: 0;
+            margin: 0;
+            background: none;
+            border: none;
+            overflow-x: auto;
+        }
+        .loading-animation {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid #00f0ff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    <!-- MathJax for rendering LaTeX math notation -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body class="p-4 sm:p-8">
+
+    <div class="container">
+        <div class="flex flex-col items-center mb-6">
+            <svg class="w-12 h-12 text-cyan-400 ai-title mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v2a3 3 0 0 0 3 3 3 3 0 0 0 3-3V5a3 3 0 0 0-3-3z"></path>
+                <path d="M12 18h.01"></path>
+                <path d="M12 10V4"></path>
+                <path d="M4.2 12a7.6 7.6 0 0 0 15.6 0"></path>
+                <path d="M16 12h2a6 6 0 0 1 0 12h-2"></path>
+                <path d="M8 12H6a6 6 0 0 0 0 12h2"></path>
+            </svg>
+            <h1 class="text-3xl font-bold ai-title text-cyan-400">AstroMath AI Solver</h1>
+            <p class="text-sm text-gray-400 mt-1">Upload one or two images of your math problem.</p>
+        </div>
+
+        <!-- Uploader and Preview Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <!-- Image 1 Input -->
+            <div class="p-4 bg-[#23272d] rounded-lg border border-gray-700">
+                <p class="text-sm font-semibold mb-2 text-cyan-300">Image 1 (Main Problem)</p>
+                <div class="image-preview mb-3">
+                    <img id="preview1" src="" alt="Image Preview 1" class="hidden">
+                    <span id="placeholder1" class="text-gray-500">No Image</span>
+                </div>
+                <input type="file" id="mathImageInput1" accept="image/*" class="custom-file-input w-full" onchange="handleFileInput(1)">
+            </div>
+
+            <!-- Image 2 Input -->
+            <div class="p-4 bg-[#23272d] rounded-lg border border-gray-700">
+                <p class="text-sm font-semibold mb-2 text-cyan-300">Image 2 (Optional Context)</p>
+                <div class="image-preview mb-3">
+                    <img id="preview2" src="" alt="Image Preview 2" class="hidden">
+                    <span id="placeholder2" class="text-gray-500">No Image</span>
+                </div>
+                <input type="file" id="mathImageInput2" accept="image/*" class="custom-file-input w-full" onchange="handleFileInput(2)">
+            </div>
+        </div>
+
+        <button onclick="solveMath()" id="solveButton"
+                class="w-full py-3 rounded-xl font-semibold text-lg
+                       bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400
+                       text-gray-900 transition-all duration-300 transform hover:scale-[1.01]
+                       shadow-lg shadow-cyan-500/50 flex items-center justify-center disabled:opacity-50"
+                disabled>
+            <span id="buttonText">Solve Problem</span>
+            <div id="loadingIndicator" class="hidden loading-animation ml-3"></div>
+        </button>
+
+        <!-- Result Display Section -->
+        <div id="resultContainer" class="hidden mt-6">
+            <div class="result-box">
+                <h3>Solution Steps (Mathematical Notation Only):</h3>
+                <div id="solutionOutput" class="text-gray-200 leading-relaxed min-h-[50px] overflow-auto">
+                    <!-- Solution will be rendered here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Error/Message Display -->
+        <div id="messageBox" class="p-3 mt-4 hidden bg-red-900/50 border border-red-700 rounded-lg text-red-300"></div>
+
+    </div>
+
+    <script type="module">
+        // Firebase Configuration and Auth (required boilerplate)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables provided by the environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app, auth, db;
+
+        // Initialize Firebase on load
+        async function initializeFirebase() {
+            try {
+                if (Object.keys(firebaseConfig).length > 0) {
+                    app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+                    setLogLevel('debug'); // Enable Firestore logging
+
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                        console.log("Firebase signed in with custom token.");
+                    } else {
+                        await signInAnonymously(auth);
+                        console.log("Firebase signed in anonymously.");
+                    }
+                } else {
+                    console.warn("Firebase config is missing or empty. Skipping full initialization.");
+                }
+            } catch (error) {
+                console.error("Firebase initialization or sign-in failed:", error);
+                displayMessage("Error: Firebase initialization failed. Check console for details.", true);
+            }
+        }
+
+        initializeFirebase();
+        
+        // --- End Firebase Boilerplate ---
+
+        const imageInputs = [
+            document.getElementById('mathImageInput1'),
+            document.getElementById('mathImageInput2')
+        ];
+        const previews = [
+            { img: document.getElementById('preview1'), placeholder: document.getElementById('placeholder1') },
+            { img: document.getElementById('preview2'), placeholder: document.getElementById('placeholder2') }
+        ];
+        const solveButton = document.getElementById('solveButton');
+        const solutionOutput = document.getElementById('solutionOutput');
+        const resultContainer = document.getElementById('resultContainer');
+        const messageBox = document.getElementById('messageBox');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const buttonText = document.getElementById('buttonText');
+        
+        let base64Images = [null, null]; // Stores base64 data for image 1 and 2
+        let imageMimeTypes = [null, null]; // Stores mime types
+
+        /**
+         * Converts the uploaded file to a Base64 string and updates UI state.
+         * @param {number} index - 0 for Image 1, 1 for Image 2.
+         * @param {File} file - The file object.
+         */
+        function handleImageUpload(index, file) {
+            if (file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        // Extract base64 part (e.g., remove "data:image/png;base64,")
+                        const base64Data = reader.result.split(',')[1];
+                        base64Images[index] = base64Data;
+                        imageMimeTypes[index] = file.type;
+                        
+                        // Update image preview
+                        previews[index].img.src = reader.result;
+                        previews[index].img.classList.remove('hidden');
+                        previews[index].placeholder.classList.add('hidden');
+                        
+                        checkSolveButtonState();
+                        resolve(base64Data);
+                    };
+                    reader.onerror = error => reject(error);
+                    reader.readAsDataURL(file);
+                });
+            } else {
+                base64Images[index] = null;
+                imageMimeTypes[index] = null;
+                previews[index].img.src = '';
+                previews[index].img.classList.add('hidden');
+                previews[index].placeholder.classList.remove('hidden');
+                checkSolveButtonState();
+                return Promise.resolve(null);
+            }
+        }
+
+        /**
+         * Checks if at least one image is uploaded and enables/disables the Solve button.
+         */
+        function checkSolveButtonState() {
+            const isAnyImageUploaded = base64Images[0] !== null || base64Images[1] !== null;
+            solveButton.disabled = !isAnyImageUploaded;
+        }
+
+        /**
+         * Handles the file input change for a specific image slot.
+         * @param {number} inputNumber - 1 for first input, 2 for second.
+         */
+        window.handleFileInput = async function(inputNumber) {
+            const index = inputNumber - 1;
+            const file = imageInputs[index].files[0];
+            
+            try {
+                await handleImageUpload(index, file);
+            } catch (e) {
+                displayMessage("Error reading file. Please try a different image.", true);
+            }
+        }
+
+        /**
+         * Displays status or error messages in the message box.
+         * @param {string} message The message to display.
+         * @param {boolean} isError If true, styles as an error.
+         */
+        function displayMessage(message, isError = false) {
+            messageBox.textContent = message;
+            messageBox.className = `p-3 mt-4 bg-opacity-50 border rounded-lg text-sm ${isError ? 'bg-red-900 border-red-700 text-red-300' : 'bg-green-900 border-green-700 text-green-300'}`;
+            messageBox.classList.remove('hidden');
+        }
+
+        /**
+         * Calls the Gemini API to solve the math problem from the uploaded images.
+         */
+        window.solveMath = async function() {
+            if (base64Images[0] === null && base64Images[1] === null) {
+                displayMessage("Please upload at least one mathematical problem image.", true);
+                return;
+            }
+
+            // UI State: Loading
+            solveButton.disabled = true;
+            buttonText.textContent = "Solving...";
+            loadingIndicator.classList.remove('hidden');
+            resultContainer.classList.add('hidden');
+            messageBox.classList.add('hidden');
+            solutionOutput.innerHTML = 'Loading solution...'; // Temporary message
+            
+            const apiKey = ""; // Canvas environment handles this key
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+            // *** CRUCIAL: System Instruction for Math Notation Only ***
+            const systemPrompt = `Act as a pure Mathematical AI Solver. Your only goal is to analyze the provided images of a math problem (which may be split across two images) and provide a clear, step-by-step solution.
+
+            STRICT FORMATTING RULES:
+            1. The output MUST be in English, but only use MINIMAL connective phrases (like 'Step 1,' 'Next,' 'Final Answer:').
+            2. All mathematical steps, expressions, and the final answer MUST be enclosed in LaTeX notation using double dollar signs ($$).
+            3. Do NOT include any long descriptive paragraphs, only the math itself.`;
+
+            const userPrompt = "Analyze the provided image(s) and present the complete, step-by-step solution using ONLY mathematical notation and minimal text labels.";
+
+            // Construct parts array for payload
+            const imageParts = [];
+            if (base64Images[0]) {
+                imageParts.push({ 
+                    inlineData: { mimeType: imageMimeTypes[0], data: base64Images[0] } 
+                });
+            }
+            if (base64Images[1]) {
+                imageParts.push({ 
+                    inlineData: { mimeType: imageMimeTypes[1], data: base64Images[1] } 
+                });
+            }
+
+            const payload = {
+                contents: [{
+                    role: "user",
+                    parts: [{ text: userPrompt }, ...imageParts]
+                }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                }
+            };
+
+            const maxRetries = 5;
+            let attempt = 0;
+            let response;
+            let success = false;
+
+            while (attempt < maxRetries && !success) {
+                attempt++;
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        success = true;
+                    } else if (response.status === 429) {
+                        const delay = Math.pow(2, attempt) * 1000;
+                        console.warn(`Attempt ${attempt}: Rate limit hit. Retrying in ${delay / 1000}s...`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        throw new Error(`API returned status ${response.status}`);
+                    }
+                } catch (error) {
+                    console.error(`Attempt ${attempt}: Fetch failed.`, error);
+                    if (attempt === maxRetries) {
+                        displayMessage("An unexpected error occurred after multiple retries. Please check your network or try again later.", true);
+                        break;
+                    }
+                    const delay = Math.pow(2, attempt) * 1000;
+                    console.warn(`Retrying in ${delay / 1000}s...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+
+            // UI State: Complete
+            solveButton.disabled = false;
+            buttonText.textContent = "Solve Problem";
+            loadingIndicator.classList.add('hidden');
+            
+            if (!success || !response) {
+                displayMessage("Failed to get a response from the AI Math Solver. Please ensure the image is clear.", true);
+                solutionOutput.innerHTML = '';
+                return;
+            }
+
+            try {
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    const text = candidate.content.parts[0].text;
+                    
+                    // Render the raw text first
+                    solutionOutput.innerText = text;
+
+                    // Then tell MathJax to process the new content (converting $$...$$ to formatted math)
+                    MathJax.typesetPromise([solutionOutput]).then(() => {
+                        console.log("MathJax typesetting complete.");
+                    }).catch((err) => {
+                        console.error("MathJax typesetting error:", err);
+                        displayMessage("Warning: Math rendering failed. Displaying raw LaTeX/text.", false);
+                    });
+
+                    resultContainer.classList.remove('hidden');
+                } else {
+                    displayMessage("The AI could not process the request. Please upload a clear mathematical image.", true);
+                    solutionOutput.innerHTML = '';
+                }
+            } catch (error) {
+                console.error("Error parsing AI response:", error);
+                displayMessage("Error processing the AI's response. The structure may be invalid.", true);
+            }
+        }
+    </script>
+</body>
+</html>
+
